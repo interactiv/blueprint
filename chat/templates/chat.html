@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+</head>
+<body>
+<div class="container">
+    <ul id="messages"></ul>
+    <form id="chatbox" action="">
+        <textarea name="" id="" cols="30" rows="10"></textarea>
+        <input type="submit" value="Send"/>
+    </form>
+</div>
+<style scoped="">
+    input{display:block;}
+    ul{list-style:none;}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+<script>
+    $(function(){
+        "use strict";
+        var socket=null,
+            msgBox=$('#chatbox textarea'),
+            messages=$('#messages');
+        $('#chatbox').submit(function(){
+            if(!msgBox.val())return false;
+            if(!socket){
+                alert('Error: no socket connection.');
+                return false;
+            }
+            socket.send(msgBox.val());
+            msgBox.val("");
+            return false;
+        });
+        if(!window["WebSocket"]){
+            alert('Error: Your browser does not support web sockets.')
+        }else{
+            socket = new WebSocket("ws://localhost:8080/room")
+            socket.onopen=function(){
+                console.log('websocket opened')
+            }
+            socket.onclose = function(){
+                alert("Connection has been closed.");
+            }
+            socket.onmessage=function(e){
+                messages.append($("<li>").text(e.data));
+            }
+
+        }
+    })
+</script>
+</body>
+</html>
