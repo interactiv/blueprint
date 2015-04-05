@@ -23,7 +23,7 @@
         var socket=null,
             msgBox=$('#chatbox textarea'),
             messages=$('#messages');
-        $('#chatbox').submit(function(){
+        $('#chatbox').submit(function(e){
             if(!msgBox.val())return false;
             if(!socket){
                 alert('Error: no socket connection.');
@@ -31,12 +31,14 @@
             }
             socket.send(msgBox.val());
             msgBox.val("");
+            e.preventDefault();
+            e.stopPropagation();
             return false;
         });
         if(!window["WebSocket"]){
             alert('Error: Your browser does not support web sockets.')
         }else{
-            socket = new WebSocket("ws://localhost:8080/room")
+            socket = new WebSocket("ws://{{.Host}}/room")
             socket.onopen=function(){
                 console.log('websocket opened')
             }
