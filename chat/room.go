@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gorilla/websocket"
+	"github.com/interactiv/blueprints/trace"
 	"log"
 	"net/http"
 )
@@ -12,6 +13,7 @@ type Room struct {
 	join    chan *Client
 	leave   chan *Client
 	clients map[*Client]bool
+	tracer  trace.Tracer
 }
 
 // infinite loop meant to be run in the background
@@ -20,26 +22,28 @@ func (r *Room) run() {
 		select {
 		case client := <-r.join:
 			//joining
-			log.Printf("client joining %+v",client)
 			r.clients[client] = true
+			r.tracer.Trace("New client joined")
 		case client := <-r.leave:
 			//leaving
-			log.Printf("client leaving %+v",client)
 			delete(r.clients, client)
 			close(client.send)
+			r.tracer.Trace("Client leaving")
 		case msg := <-r.forward:
+			r.tracer.Trace("Message received", string(msg))
 			//forward message to all clients
-			log.Printf("forward message to clients %+v",msg)
 			for client := range r.clients {
 				select {
 				case client.send <- msg:
 					log.Printf("message sent")
 					//send messaage
+					r.tracer.Trace(" -- Message sent to client")
 				default:
 					//failed to send
 					log.Printf("failed to send message")
 					delete(r.clients, client)
 					close(client.send)
+					r.tracer.Trace(" -- Failed to send message,closing client")
 				}
 			}
 		}

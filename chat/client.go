@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/gorilla/websocket"
-	"fmt"
 )
 
 type Client struct {
@@ -28,7 +27,6 @@ func (c *Client) read() {
 func (c *Client) write() {
 	for msg := range c.send {
 		if err := c.socket.WriteMessage(websocket.TextMessage, msg); err != nil {
-			fmt.Printf("error sending message %+v",err)
 			break
 		}
 	}
