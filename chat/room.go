@@ -30,7 +30,7 @@ func (r *Room) run() {
 			close(client.send)
 			r.tracer.Trace("Client leaving")
 		case msg := <-r.forward:
-			r.tracer.Trace("Message received", string(msg))
+			r.tracer.Trace("Message received: ", string(msg))
 			//forward message to all clients
 			for client := range r.clients {
 				select {
@@ -85,5 +85,6 @@ func newRoom() *Room {
 		join:    make(chan *Client),
 		leave:   make(chan *Client),
 		clients: make(map[*Client]bool),
+		tracer:  trace.NewNull(),
 	}
 }

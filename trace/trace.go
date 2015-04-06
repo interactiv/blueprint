@@ -21,6 +21,17 @@ func (t *tracer) Trace(a ...interface{}) {
 	t.out.Write([]byte(fmt.Sprint(a...)))
 	t.out.Write([]byte("\n"))
 }
+
+type nullTracer struct {
+}
+
+func (t *nullTracer) Trace(a ...interface{}) {
+
+}
 func New(w io.Writer) Tracer {
 	return &tracer{out: w}
+}
+
+func NewNull() Tracer {
+	return &nullTracer{}
 }
