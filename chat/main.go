@@ -28,7 +28,7 @@ func main() {
 	var (
 		addr         = flag.String("addr", "localhost:8080", "the addr of the application")
 		debug        = flag.Bool("debug", false, "launch server in debug mode")
-		configString = flag.String("config", os.Getenv("CHATCONFIG"), "the config file path")
+		configString = flag.String("config", os.Getenv("CHATCONFIG"), "a json string detailing the application config")
 	)
 	flag.Parse()
 	r := newRoom()
@@ -41,9 +41,9 @@ func main() {
 			config.Github.Secret,
 			config.Github.Callback),
 		google.New(
-			config.Github.ClientId,
-			config.Github.Secret,
-			config.Github.Callback),
+			config.Google.ClientId,
+			config.Google.Secret,
+			config.Google.Callback),
 	)
 	r.tracer = trace.New(os.Stdout)
 	http.Handle("/", ServeTemplate("index.html", *debug))
@@ -74,7 +74,13 @@ func (t *templateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		t.tpl = template.Must(template.ParseFiles(path.Join("templates", t.filename)))
 	}
-	t.tpl.Execute(w, r)
+	data := map[string]interface{}{
+		"Host": r.Host,
+	}
+	if authCookie, err := r.Cookie("auth"); err == nil {
+		data["UserData"] = objx.MustFromBase64(authCookie.Value)
+	}
+	t.tpl.Execute(w, data)
 }
 
 // ServeTemplate is a helper that returns a template handler
