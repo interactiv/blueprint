@@ -49,6 +49,7 @@ func main() {
 	http.Handle("/", ServeTemplate("index.html", *debug))
 	http.Handle("/chat", MustAuth(ServeTemplate("chat.html", *debug)))
 	http.Handle("/login", ServeTemplate("login.html", *debug))
+	http.HandleFunc("/logout", logoutHandler)
 	http.Handle("/room", r)
 	http.Handle("/assets/", http.StripPrefix("/assets", http.FileServer(http.Dir("./assets/"))))
 	http.HandleFunc("/auth/", loginHandler)
@@ -146,4 +147,15 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprintf(w, "Auth action %s not supported.", action)
+}
+
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:   "auth",
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	})
+	w.Header()["Location"] = []string{"/chat"}
+	w.WriteHeader(http.StatusTemporaryRedirect)
 }
