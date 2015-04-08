@@ -3,7 +3,7 @@
 $(function(){
       "use strict";
       var socket=null,
-          msgBox=$('#chatbox textarea'),
+          msgBox=$('#chatbox #input'),
           messages=$('#messages');
       $('#chatbox').submit(function(e){
           if(!msgBox.val())return false;
@@ -22,17 +22,17 @@ $(function(){
       }else{
           socket = new WebSocket("ws://"+host+"/room")
           socket.onopen=function(){
-              console.log('websocket opened')
+              messages.append(DateFormat(new Date())+" Connection opened.")
           }
           socket.onclose = function(){
-              alert("Connection has been closed.");
+              messages.append("Connection has been closed.");
           }
           socket.onmessage=function(e){
 			var msg=JSON.parse(e.data);
 			messages.append(
 				$('<li>').append(
 					$('<div>').text(DateFormat(new Date(msg.When))+ " : ")
-					.append('<img>',{src:msg.Avatar,style:"width:3em;"}),
+					.prepend($('<img>',{"vertical-align":"baseline",src:msg.Avatar,style:"width:3em;"})),
 					$('<strong>').text(msg.Name+": "),
 					$('<span>').text(msg.Message)
 				)

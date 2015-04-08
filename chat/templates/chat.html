@@ -10,16 +10,21 @@
 </head>
 <body>
 <div class="container">
-   
-    <form id="chatbox" action="">
-        <div class="form-group">
-            <img src="{{.UserData.avatar_url}}" style="width:4em;" />
-            <label>{{.UserData.name}}</label>
-        </div>
-         <ul id="messages"></ul>
-        <textarea name="" id="" cols="30" rows="10"></textarea>
-        <input type="submit" value="Send"/>
-    </form>
+    <h1>Chat</h1>
+    <hr/>
+    <div class='row'>
+        <form id="chatbox" action="" class='form col-md-6'>
+            <div class="form-group">
+                <img src="{{.UserData.avatar_url}}" style="width:4em;" />
+                <label>{{.UserData.name}}</label>
+            </div>
+            <ul id="messages"></ul>
+            <div class="form-group">
+                <input class="form-control" type="text" id="input"/>
+            </div>
+            <input type="submit" value="Send"/>
+        </form>
+    </div>
 </div>
 <style scoped="">
     input{display:block;}
