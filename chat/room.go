@@ -3,13 +3,14 @@ package main
 import (
 	"github.com/gorilla/websocket"
 	"github.com/interactiv/blueprints/trace"
+	"github.com/stretchr/objx"
 	"log"
 	"net/http"
 )
 
 type Room struct {
 	// messages are forwarded to people in that room
-	forward chan []byte
+	forward chan *message
 	join    chan *Client
 	leave   chan *Client
 	clients map[*Client]bool
@@ -30,7 +31,7 @@ func (r *Room) run() {
 			close(client.send)
 			r.tracer.Trace("Client leaving")
 		case msg := <-r.forward:
-			r.tracer.Trace("Message received: ", string(msg))
+			r.tracer.Trace("Message received: ", msg)
 			//forward message to all clients
 			for client := range r.clients {
 				select {
@@ -67,10 +68,16 @@ func (r *Room) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Fatal("ServeHTTP:", err)
 		return
 	}
+	authCookie, err := req.Cookie("auth")
+	if err != nil {
+		log.Fatal("Failed to get auth cookie: ", err)
+		return
+	}
 	client := &Client{
-		socket: socket,
-		send:   make(chan []byte, messageBufferSize),
-		room:   r,
+		socket:   socket,
+		send:     make(chan *message, messageBufferSize),
+		room:     r,
+		userData: objx.MustFromBase64(authCookie.Value),
 	}
 	r.join <- client
 	defer func() { r.leave <- client }()
@@ -81,7 +88,7 @@ func (r *Room) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // newRoom makes a new room thati s ready to go.
 func newRoom() *Room {
 	return &Room{
-		forward: make(chan []byte),
+		forward: make(chan *message),
 		join:    make(chan *Client),
 		leave:   make(chan *Client),
 		clients: make(map[*Client]bool),
