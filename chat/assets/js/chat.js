@@ -31,7 +31,8 @@ $(function(){
 			var msg=JSON.parse(e.data);
 			messages.append(
 				$('<li>').append(
-					$('<div>').text(DateFormat(new Date(msg.When))+ " : "),
+					$('<div>').text(DateFormat(new Date(msg.When))+ " : ")
+					.append('<img>',{src:msg.Avatar,style:"width:3em;"}),
 					$('<strong>').text(msg.Name+": "),
 					$('<span>').text(msg.Message)
 				)
