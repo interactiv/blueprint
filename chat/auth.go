@@ -5,6 +5,8 @@ import (
 	"net/http"
 )
 
+// authHandler handles auth in the web app. It will check if a route needs to be secured.
+// if so , checks if cookie names auth available.
 type authHandler struct {
 	next http.Handler
 }
