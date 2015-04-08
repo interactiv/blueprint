@@ -31,10 +31,10 @@ $(function(){
 			var msg=JSON.parse(e.data);
 			messages.append(
 				$('<li>').append(
-					$('<div>').text(DateFormat(new Date(msg.When))+ " : ")
-					.prepend($('<img>',{"vertical-align":"baseline",src:msg.Avatar,style:"width:3em;"})),
-					$('<strong>').text(msg.Name+": "),
-					$('<span>').text(msg.Message)
+					$('<img>',{src:msg.Avatar,style:"width:3em;"}),
+					$('<strong>').text(" "+msg.Name+": "),
+					$('<em>').text(DateFormat(new Date(msg.When))),
+					$('<span>').text(" "+msg.Message)
 				)
 			);
           }
