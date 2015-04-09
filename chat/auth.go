@@ -36,6 +36,24 @@ func MustAuth(handler http.Handler) http.Handler {
 	return &authHandler{next: handler}
 }
 
+// MustAuthFunc takes a http handler function as arguments.
+// Has the same behavior as MustAuth
+func MustAuthFunc(next func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cookie, err := r.Cookie("auth"); err == http.ErrNoCookie || cookie.Value == "" {
+			// no auth
+			w.Header().Set("Location", "/login")
+			w.WriteHeader(http.StatusTemporaryRedirect)
+		} else if err != nil {
+			//other error
+			panic(err.Error())
+		} else {
+			// success - call next
+			next(w, r)
+		}
+	}
+}
+
 // fomat: /auth/{action}/{provider}
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	segs := strings.Split(r.URL.Path, "/")
