@@ -15,6 +15,7 @@ type Room struct {
 	leave   chan *Client
 	clients map[*Client]bool
 	tracer  trace.Tracer
+	avatar  Avatar
 }
 
 // infinite loop meant to be run in the background
@@ -86,12 +87,13 @@ func (r *Room) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 // newRoom makes a new room thati s ready to go.
-func newRoom() *Room {
+func newRoom(avatar Avatar) *Room {
 	return &Room{
 		forward: make(chan *message),
 		join:    make(chan *Client),
 		leave:   make(chan *Client),
 		clients: make(map[*Client]bool),
 		tracer:  trace.NewNull(),
+		avatar:  avatar,
 	}
 }

@@ -1,0 +1,13 @@
+{
+    "securityKey": "d3b07384d113edec49eaa6238ad5ff00",
+    "github": {
+        "clientId": "0829c40c9f722516a014",
+        "secret": "57d805c016d3dfce1e5d60cc402cb73233a19a42",
+        "callback": "http://localhost:8080/auth/callback/github"
+    },
+    "google": {
+        "secret": "4bZ8O4-pdwUWPUmgXkmKv7HN",
+        "clientId": "918451943939-2frv18phrqffit5m5o9l4n1d4ademei3.apps.googleusercontent.com",
+        "callback": "4bZ8O4-pdwUWPUmgXkmKv7HN"
+    }
+}

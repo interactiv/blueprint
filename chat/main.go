@@ -5,18 +5,18 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/interactiv/blueprints/trace"
 	"github.com/stretchr/gomniauth"
 	"github.com/stretchr/gomniauth/providers/github"
 	"github.com/stretchr/gomniauth/providers/google"
 	"github.com/stretchr/objx"
 	"html/template"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path"
-	"strings"
 	"sync"
 )
 
@@ -29,10 +29,15 @@ func main() {
 		addr         = flag.String("addr", "localhost:8080", "the addr of the application")
 		debug        = flag.Bool("debug", false, "launch server in debug mode")
 		configString = flag.String("config", os.Getenv("CHATCONFIG"), "a json string detailing the application config")
+		avatar       Avatar
+		r            *Room
+		err          error
+		config       *config
 	)
 	flag.Parse()
-	r := newRoom()
-	config := NewConfigFromString(*configString)
+	avatar = UseFileSystemAvatar
+	r = newRoom(avatar)
+	config = NewConfigFromString(*configString)
 	//oauth2
 	gomniauth.SetSecurityKey(config.SecurityKey)
 	gomniauth.WithProviders(
@@ -53,9 +58,12 @@ func main() {
 	http.Handle("/room", r)
 	http.Handle("/assets/", http.StripPrefix("/assets", http.FileServer(http.Dir("./assets/"))))
 	http.HandleFunc("/auth/", loginHandler)
+	http.Handle("/upload", ServeTemplate("upload.html", *debug))
+	http.HandleFunc("/uploader", uploadHandler)
+	http.Handle("/avatars/", http.StripPrefix("/avatars", http.FileServer(http.Dir("./avatars/"))))
 	go r.run()
 	log.Println("starting server on ", *addr)
-	if err := http.ListenAndServe(*addr, nil); err != nil {
+	if err = http.ListenAndServe(*addr, nil); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -89,73 +97,23 @@ func ServeTemplate(templateFile string, debug bool) http.Handler {
 	return &templateHandler{filename: templateFile, debug: debug}
 }
 
-// fomat: /auth/{action}/{provider}
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	segs := strings.Split(r.URL.Path, "/")
-	if len(segs) != 4 {
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "404 Not Found : %s", r.URL.Path)
+func uploadHandler(w http.ResponseWriter, r *http.Request) {
+	userId := r.FormValue("userId")
+	file, header, err := r.FormFile("avatarFile")
+	if err != nil {
+		io.WriteString(w, "error getting file from form: "+err.Error())
 		return
 	}
-	action := segs[2]
-	provider := segs[3]
-	switch action {
-	case "login":
-		switch provider {
-		case "google", "github":
-			provider, err := gomniauth.Provider(provider)
-			if err != nil {
-				log.Fatalf("Error when trying to get provider %v - %v", provider, err)
-			}
-			loginUrl, err := provider.GetBeginAuthURL(nil, nil)
-			if err != nil {
-				log.Fatalf("Error when trying to GetBeginAuthURL for %v - %v ", provider, err)
-			}
-			w.Header().Set("Location", loginUrl)
-			w.WriteHeader(http.StatusTemporaryRedirect)
-			return
-		}
-	case "callback":
-		switch provider {
-		case "google", "github":
-			provider, err := gomniauth.Provider(provider)
-			if err != nil {
-				log.Fatalf("Error when trying to complete auth for %v - %v", provider, err)
-			}
-			creds, err := provider.CompleteAuth(objx.MustFromURLQuery(r.URL.RawQuery))
-			if err != nil {
-				log.Fatalf("Error when trying to get user from %v - %v", provider, err)
-			}
-			user, err := provider.GetUser(creds)
-			if err != nil {
-				log.Fatalf("Error when trying to get user from %v - %v", provider, err)
-			}
-			authCookieValue := objx.New(map[string]interface{}{
-				"name":       user.Name(),
-				"avatar_url": user.AvatarURL(),
-			}).MustBase64()
-			http.SetCookie(w, &http.Cookie{
-				Name:     "auth",
-				Value:    authCookieValue,
-				Path:     "/",
-				HttpOnly: true,
-			})
-			w.Header()["Location"] = []string{"/chat"}
-			w.WriteHeader(http.StatusTemporaryRedirect)
-			return
-		}
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		io.WriteString(w, "error reading file: "+err.Error())
+		return
 	}
-	w.WriteHeader(http.StatusNotFound)
-	fmt.Fprintf(w, "Auth action %s not supported.", action)
-}
-
-func logoutHandler(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{
-		Name:   "auth",
-		Value:  "",
-		Path:   "/",
-		MaxAge: -1,
-	})
-	w.Header()["Location"] = []string{"/chat"}
-	w.WriteHeader(http.StatusTemporaryRedirect)
+	filename := path.Join("avatars", userId+path.Ext(header.Filename))
+	err = ioutil.WriteFile(filename, data, 0644)
+	if err != nil {
+		io.WriteString(w, err.Error())
+		return
+	}
+	io.WriteString(w, "Successful")
 }
