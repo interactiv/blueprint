@@ -1,3 +1,4 @@
 cover.out
 *.exe
-config.jsonavatars/*
+config.json
+avatars/*

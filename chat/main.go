@@ -58,9 +58,9 @@ func main() {
 	http.Handle("/room", r)
 	http.Handle("/assets/", http.StripPrefix("/assets", http.FileServer(http.Dir("./assets/"))))
 	http.HandleFunc("/auth/", loginHandler)
-	http.Handle("/upload", ServeTemplate("upload.html", *debug))
-	http.HandleFunc("/uploader", uploadHandler)
-	http.Handle("/avatars/", http.StripPrefix("/avatars", http.FileServer(http.Dir("./avatars/"))))
+	http.Handle("/upload", MustAuth(ServeTemplate("upload.html", *debug)))
+	http.HandleFunc("/uploader", MustAuthFunc(uploadHandler))
+	http.Handle("/avatars/", MustAuth(http.StripPrefix("/avatars", http.FileServer(http.Dir("./avatars/")))))
 	go r.run()
 	log.Println("starting server on ", *addr)
 	if err = http.ListenAndServe(*addr, nil); err != nil {
@@ -115,5 +115,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, err.Error())
 		return
 	}
-	io.WriteString(w, "Successful")
+	w.Header()["Location"] = []string{"/chat"}
+	w.WriteHeader(http.StatusTemporaryRedirect)
 }
