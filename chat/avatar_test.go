@@ -3,6 +3,7 @@ package main
 
 import (
 	"github.com/interactiv/expect"
+	g "github.com/stretchr/gomniauth/test"
 	"io/ioutil"
 	"os"
 	"path"
@@ -11,28 +12,27 @@ import (
 
 func TestAuthAvatar(t *testing.T) {
 	var authAvatar AuthAvatar
-	client := new(Client)
-	url, err := authAvatar.GetAvatarURL(client)
-	expect.Expect(err, t).ToEqual(ErroNoAvatarURL)
+	testUser := &g.TestUser{}
+	testUser.On("AvatarURL").Return("", ErroNoAvatarURL)
+	testChatUser := &chatUser{User: testUser}
+	url, err := authAvatar.GetAvatarURL(testChatUser)
+	expect.Expect(err, t).ToBe(ErroNoAvatarURL)
 	testUrl := "http://url-to-avatar"
-	client.userData = map[string]interface{}{
-		"avatar_url": testUrl,
-	}
-	url, err = authAvatar.GetAvatarURL(client)
+	testUser = &g.TestUser{}
+	testChatUser.User = testUser
+	testUser.On("AvatarURL").Return(testUrl, nil)
+	url, err = authAvatar.GetAvatarURL(testChatUser)
 	expect.Expect(err, t).ToBeNil()
-	expect.Expect(url, t).ToEqual(testUrl)
+	expect.Expect(url, t).ToBe(testUrl)
 }
 
 func TestGravatarAvatar(t *testing.T) {
 	var gravatarAvatar GravatarAvatar
 	e := expect.New(t)
-	client := new(Client)
-	client.userData = map[string]interface{}{
-		"userId": "fd876f8cd6a58277fc664d47ea10ad19",
-	}
-	url, err := gravatarAvatar.GetAvatarURL(client)
+	user := &chatUser{uniqueID: "abc"}
+	url, err := gravatarAvatar.GetAvatarURL(user)
 	e.Expect(err).ToBeNil()
-	e.Expect(url).ToBe("//www.gravatar.com/avatar/fd876f8cd6a58277fc664d47ea10ad19")
+	e.Expect(url).ToBe("//www.gravatar.com/avatar/abc")
 }
 
 func TestFileSystemAvatar(t *testing.T) {
@@ -42,12 +42,9 @@ func TestFileSystemAvatar(t *testing.T) {
 	ioutil.WriteFile(filename, []byte{}, 0644)
 	defer func() { os.Remove(filename) }()
 	var fileSystemAvatar FileSystemAvatar
-	client := new(Client)
-	client.userData = map[string]interface{}{
-		"userId": "abc",
-	}
-	url, err := fileSystemAvatar.GetAvatarURL(client)
+	user := &chatUser{uniqueID: "abc"}
+	url, err := fileSystemAvatar.GetAvatarURL(user)
 	e.Expect(err).ToBeNil()
-	e.Expect(url).ToContain(client.userData["userId"].(string))
+	e.Expect(url).ToContain("abc")
 
 }

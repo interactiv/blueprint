@@ -5,12 +5,27 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/stretchr/gomniauth"
+	"github.com/stretchr/gomniauth/common"
 	"github.com/stretchr/objx"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 )
+
+type ChatUser interface {
+	UniqueID() string
+	AvatarURL() string
+}
+
+type chatUser struct {
+	common.User
+	uniqueID string
+}
+
+func (u *chatUser) UniqueID() string {
+	return u.uniqueID
+}
 
 // authHandler handles auth in the web app. It will check if a route needs to be secured.
 // if so , checks if cookie names auth available.
@@ -54,8 +69,12 @@ func MustAuthFunc(next func(w http.ResponseWriter, r *http.Request)) func(w http
 	}
 }
 
+type accountHandler struct {
+	avatar Avatar
+}
+
 // fomat: /auth/{action}/{provider}
-func loginHandler(w http.ResponseWriter, r *http.Request) {
+func (accountHandler *accountHandler) loginHandler(w http.ResponseWriter, r *http.Request) {
 	segs := strings.Split(r.URL.Path, "/")
 	if len(segs) != 4 {
 		w.WriteHeader(http.StatusNotFound)
@@ -98,12 +117,14 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			m := md5.New()
 			io.WriteString(m, strings.ToLower(user.Email()))
-			userId := fmt.Sprintf("%x", m.Sum(nil))
+			chatUser := &chatUser{User: user}
+			chatUser.uniqueID = fmt.Sprintf("%x", m.Sum(nil))
+			avatarURL, err := accountHandler.avatar.GetAvatarURL(chatUser)
 			authCookieValue := objx.New(map[string]interface{}{
-				"name":       user.Name(),
-				"avatar_url": user.AvatarURL(),
+				"userId":     chatUser.uniqueID,
+				"avatar_url": avatarURL,
 				"email":      user.Email(),
-				"userId":     userId,
+				"name":       user.Name(),
 			}).MustBase64()
 			http.SetCookie(w, &http.Cookie{
 				Name:     "auth",
@@ -120,7 +141,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Auth action %s not supported.", action)
 }
 
-func logoutHandler(w http.ResponseWriter, r *http.Request) {
+func (accountHandler *accountHandler) logoutHandler(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:   "auth",
 		Value:  "",

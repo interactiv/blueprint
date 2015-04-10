@@ -29,14 +29,17 @@ func main() {
 		addr         = flag.String("addr", "localhost:8080", "the addr of the application")
 		debug        = flag.Bool("debug", false, "launch server in debug mode")
 		configString = flag.String("config", os.Getenv("CHATCONFIG"), "a json string detailing the application config")
-		avatar       Avatar
 		r            *Room
 		err          error
 		config       *config
+		avatars      *TryAvatars
+		accountHdlr  *accountHandler
 	)
 	flag.Parse()
-	avatar = UseFileSystemAvatar
-	r = newRoom(avatar)
+	r = newRoom()
+	// handles login and logout
+	avatars = &TryAvatars{UseAuthAvatar, UseFileSystemAvatar, UseGravatar}
+	accountHdlr = &accountHandler{avatar: avatars}
 	config = NewConfigFromString(*configString)
 	//oauth2
 	gomniauth.SetSecurityKey(config.SecurityKey)
@@ -54,10 +57,10 @@ func main() {
 	http.Handle("/", ServeTemplate("index.html", *debug))
 	http.Handle("/chat", MustAuth(ServeTemplate("chat.html", *debug)))
 	http.Handle("/login", ServeTemplate("login.html", *debug))
-	http.HandleFunc("/logout", logoutHandler)
+	http.HandleFunc("/logout", accountHdlr.logoutHandler)
 	http.Handle("/room", r)
 	http.Handle("/assets/", http.StripPrefix("/assets", http.FileServer(http.Dir("./assets/"))))
-	http.HandleFunc("/auth/", loginHandler)
+	http.HandleFunc("/auth/", accountHdlr.loginHandler)
 	http.Handle("/upload", MustAuth(ServeTemplate("upload.html", *debug)))
 	http.HandleFunc("/uploader", MustAuthFunc(uploadHandler))
 	http.Handle("/avatars/", MustAuth(http.StripPrefix("/avatars", http.FileServer(http.Dir("./avatars/")))))
@@ -98,7 +101,7 @@ func ServeTemplate(templateFile string, debug bool) http.Handler {
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
-	userId := r.FormValue("userId")
+	userID := r.FormValue("userId")
 	file, header, err := r.FormFile("avatarFile")
 	if err != nil {
 		io.WriteString(w, "error getting file from form: "+err.Error())
@@ -109,7 +112,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "error reading file: "+err.Error())
 		return
 	}
-	filename := path.Join("avatars", userId+path.Ext(header.Filename))
+	filename := path.Join("avatars", userID+path.Ext(header.Filename))
 	err = ioutil.WriteFile(filename, data, 0644)
 	if err != nil {
 		io.WriteString(w, err.Error())
