@@ -7,18 +7,22 @@ import (
 	"fmt"
 	"github.com/matryer/filedb"
 	"log"
+	"os"
+	"runtime/debug"
 	"strings"
 )
 
 func main() {
 	var (
 		fatalErr error
-		dbpath   = flag.String("db", "./backupdata", "path to database directory")
+		dbpath   = flag.String("db", "/backupdata", "path to database directory")
 	)
 	defer func() {
 		if fatalErr != nil {
 			flag.PrintDefaults()
+			debug.PrintStack()
 			log.Fatalln(fatalErr)
+
 		}
 	}()
 	flag.Parse()
@@ -26,6 +30,9 @@ func main() {
 	if len(args) < 1 {
 		fatalErr = errors.New("invalid usage;must specify command")
 		return
+	}
+	if _, err := os.Stat(*dbpath); err != nil {
+		os.MkdirAll(*dbpath, 0666)
 	}
 	db, err := filedb.Dial(*dbpath)
 	if err != nil {
