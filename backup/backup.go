@@ -123,9 +123,10 @@ func (m *Monitor) Now() (int, error) {
 			if err != nil {
 				return counter, err
 			}
+			m.Paths[path] = newHash // update hash
+			counter++
 		}
-		m.Paths[path] = newHash // update hash
-		counter++
+
 	}
 	return counter, nil
 }

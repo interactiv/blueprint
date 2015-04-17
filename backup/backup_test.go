@@ -29,5 +29,8 @@ func TestDirHash(t *testing.T) {
 	testPath := path.Join(wd, "test")
 	res, err := backup.DirHash(testPath)
 	e.Expect(err).ToBe(nil)
+	res2, err := backup.DirHash(testPath)
+	e.Expect(err).ToBe(nil)
 	t.Log(res)
+	e.Expect(res).ToEqual(res2)
 }
