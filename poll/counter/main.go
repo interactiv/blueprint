@@ -61,9 +61,9 @@ func main() {
 		for {
 			message, err := q.Get()
 			if err != nil {
-				fatal(err)
-				return
+				fmt.Println("error getting message: ", err)
 			} else {
+				fmt.Printf("new vote: \n%+v\n", message)
 				countsLock.Lock()
 				if counts == nil {
 					counts = make(map[string]int)
